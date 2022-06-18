@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,11 +17,15 @@ type Server interface {
 	HandleUsers(c *gin.Context)
 	HandleUserActions(c *gin.Context)
 	HandleQueryMap(c *gin.Context)
+	HandleLogin(c *gin.Context)
+	HandleLoginV2(c *gin.Context)
+	LoggerMiddleware() gin.HandlerFunc
+	AuthMiddleware() gin.HandlerFunc
 }
 
 func main() {
 
-	r := gin.Default()
+	r := gin.New()
 
 	addr := ":8080"
 	s := NewServer()
@@ -36,6 +41,16 @@ func main() {
 
 	r.GET("/querymap", s.HandleQueryMap)
 
+	v1 := r.Group("/v1")
+	// Middleware
+	v1.Use(s.LoggerMiddleware())
+	v1.Use(s.AuthMiddleware())
+
+	v2 := r.Group("/v2")
+
+	v1.GET("/login", s.HandleLogin)
+	v2.GET("/login", s.HandleLoginV2)
+
 	if err := r.Run(addr); err != nil {
 		log.Println("error while running", err)
 	}
@@ -44,6 +59,34 @@ func main() {
 
 func NewServer() Server {
 	return &server{}
+}
+
+func (s *server) AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		log.Println("Auth middleware invoked")
+		c.Header("id", fmt.Sprintf("%v", time.Now().UnixNano()))
+		c.Next()
+	}
+}
+
+func (s *server) LoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		log.Println("logging middleware invoked.")
+		c.Next()
+	}
+}
+func (s *server) HandleLogin(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "v1 login",
+	})
+
+}
+
+func (s *server) HandleLoginV2(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "v2 login",
+	})
+
 }
 func (s *server) HandlePing(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
