@@ -15,6 +15,7 @@ type Server interface {
 	HandlePing(c *gin.Context)
 	HandleUsers(c *gin.Context)
 	HandleUserActions(c *gin.Context)
+	HandleQueryMap(c *gin.Context)
 }
 
 func main() {
@@ -29,10 +30,11 @@ func main() {
 	// /users/:id
 	r.POST("/users/:id", s.HandleUsers)
 
-	// /users/:id/action
 	r.POST("/users", s.HandleUsers)
 
 	r.GET("/favicon.ico", nil)
+
+	r.GET("/querymap", s.HandleQueryMap)
 
 	if err := r.Run(addr); err != nil {
 		log.Println("error while running", err)
@@ -66,6 +68,14 @@ func (s *server) HandleUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": fmt.Sprintf("Response : %s FirstName : %s, Lastname :  %s", id, firstname, lastname),
 	})
+
+}
+
+func (s *server) HandleQueryMap(c *gin.Context) {
+
+	m := c.QueryMap("users")
+	log.Println(m)
+	c.JSON(http.StatusOK, m)
 
 }
 
